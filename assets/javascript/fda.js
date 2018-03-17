@@ -69,6 +69,8 @@ $(document).ready(function(){
     search = $("#search").val().trim();
     startdate = $("#start").val().trim();
     enddate = $("#end").val().trim();
+    
+    if(search != '' && startdate != '' && enddate != '' && selection != null){
     //	Convert user input start date into standard format
     convertedStart = moment(startdate, "YYYY-MM-DD");
     //	Convert user standard formatted start date into FDA format
@@ -111,6 +113,13 @@ $(document).ready(function(){
       });
     }
     searchResults();
+  }else{
+    $('#validation-error').slideDown(1000);
+
+    setTimeout(function(){
+      $('#validation-error').slideUp(1000);
+    }, 5000)
+  }
   });
 
   function buildQueryURL(search) {
@@ -128,6 +137,9 @@ $(document).ready(function(){
       url: queryURL,
       method: 'GET'
     }).then(function(response) {
+      trueHit = 1;
+      alert("success");
+      fireb();
     //  clear results of previous user search from results table
     $("#results-table").empty();      
  	  var data = response.results[i];
@@ -135,16 +147,9 @@ $(document).ready(function(){
     for (var i = 0; i < response.results.length; i++) {
     	var data = response.results[i];
       $("#mytable > tbody").append("<tr><td>"+data.recall_initiation_date+"</td><td>"+data.product_description+"</td><td>"+data.recalling_firm+"</td><td>"+data.reason_for_recall+"</td></tr>");
+      
     }
-  });  
-  //ajax success response function
-  $(document).ajaxSuccess(function(event, xhr){
-      //  clear results of previous user search from results table
-      trueHit = 1;
-      fireb();
-    });
-    //ajax error response function
-    $(document).ajaxError(function (event, xhr) {
+  }).catch(function (event, xhr) {
       //  clear results of previous user search from results table
       $("#results-table").empty();
     //  if the ajax error code was a 404-No results show "no results" message on the table
@@ -152,7 +157,8 @@ $(document).ready(function(){
         $("#mytable > tbody").append("<tr><td></td><td>No results for that search.   Try modifying your search.</td><td></td><td></td></tr>");
         trueHit = 0;
       }
-    });
+    });  
+
 
     // Reset user input form
     $("#search").val("");
@@ -167,7 +173,7 @@ $(document).ready(function(){
 
   //-------------------------Firebase----------------------------------//
 
-  // Listen for search hit
+  //Listen for search hit
   function fireb() {
     if (selection == 2) {
       searchType = "Product";
@@ -180,7 +186,8 @@ $(document).ready(function(){
     console.log(searchType);
     //Save Data to an object
     var recentHit = {
-    	type : searchType,
+      dateRange : fdaRange,
+      type : searchType,
       search : search
     }
 
@@ -193,16 +200,25 @@ $(document).ready(function(){
 
   // Display 10 most recent hits on DOM
   function displayHits() {
-
+  $("#ten-recent-results-table").empty();
     hitRef.limitToLast(10).on('child_added', function (snapshot) {
       // Get data from returned
-      console.log(snapshot.val());
-      //  addHit(snapshot.val());
+      console.log(snapshot.val().dateRange);
+      $("#ten-recent-results-table").prepend("<tr><td>"+snapshot.val().dateRange+"</td><td>"+snapshot.val().search+"</td><td>"+snapshot.val().type+"</td></tr>");
+
+      var trs = $('#ten-recent-results-table > tr');
+      // console.log(trs);
+      if(trs.length > 10){
+        trs[trs.length-1].remove();
+      }
     });
   };
 
 displayHits();
 });
+
+
+
 
 
 
